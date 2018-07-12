@@ -81,7 +81,6 @@ byte_pattern &byte_pattern::set_range(memory_pointer beg, memory_pointer end)
     this->_range.second = end;
 
     return *this;
-    return 
 }
 
 byte_pattern &byte_pattern::search()
