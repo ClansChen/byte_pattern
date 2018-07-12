@@ -10,6 +10,8 @@
 #include <fstream>
 #include <utility>
 #include <filesystem>
+#include <functional>
+#include <chrono>
 
 class memory_pointer
 {
@@ -59,6 +61,7 @@ class byte_pattern
     std::vector<std::uint8_t> _pattern;
     std::vector<std::uint8_t> _mask;
     std::vector<memory_pointer> _results;
+    double _spent;
     std::string _literal;
 
     std::ptrdiff_t _bmbc[256];
@@ -80,18 +83,19 @@ public:
     static void start_log(const wchar_t *module_name);
     static void shutdown_log();
 
-    static byte_pattern &temp_instance();
-
     byte_pattern();
-    
+
     byte_pattern &set_pattern(const char *pattern_literal);
-     
-    byte_pattern &set_module();
+    byte_pattern &set_pattern(const std::uint8_t *pattern_binary, size_t size);
+
+    byte_pattern &reset_module();
     byte_pattern &set_module(memory_pointer module);
     byte_pattern &set_range(memory_pointer beg, memory_pointer end);
+
     byte_pattern &search();
 
     byte_pattern &find_pattern(const char *pattern_literal);
+    byte_pattern &find_pattern(const std::uint8_t *pattern_binary, size_t size);
 
     memory_pointer get(std::size_t index) const;
     memory_pointer get_first() const;
@@ -101,12 +105,5 @@ public:
     bool empty() const;
     void clear();
 
-    template <typename Fn>
-    void for_each_result(Fn Pr) const
-    {
-        for (auto &result : this->_results)
-        {
-            Pr(result);
-        }
-    }
+    void for_each_result(std::function<void(memory_pointer)> Pr) const;
 };

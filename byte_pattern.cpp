@@ -4,6 +4,7 @@
 #include "byte_pattern.h"
 
 using namespace std;
+using namespace std::chrono;
 
 memory_pointer byte_pattern::get(size_t index) const
 {
@@ -15,16 +16,16 @@ memory_pointer byte_pattern::get_first() const
     return this->get(0);
 }
 
-void byte_pattern::start_log(const wchar_t *module_name)
+void byte_pattern::start_log(const wchar_t *log_name)
 {
     shutdown_log();
 
     wchar_t exe_path[512];
     wchar_t filename[512];
 
-    swprintf(filename, 512, L"pattern_%s.log", module_name);
+    swprintf(filename, 512, L"pattern_%s.log", log_name);
 
-    GetModuleFileName(NULL, exe_path, 512);
+    GetModuleFileNameW(NULL, exe_path, 512);
 
     log_stream().open(experimental::filesystem::v1::path{ exe_path }.parent_path() / filename, ios::trunc);
 }
@@ -34,27 +35,33 @@ void byte_pattern::shutdown_log()
     log_stream().close();
 }
 
-byte_pattern & byte_pattern::temp_instance()
-{
-    static byte_pattern instance;
-
-    return instance;
-}
-
 byte_pattern::byte_pattern()
 {
-    set_module();
+    reset_module();
 }
 
 byte_pattern &byte_pattern::set_pattern(const char *pattern_literal)
 {
+    this->_pattern.clear();
+    this->_mask.clear();
     this->transform_pattern(pattern_literal);
     this->bm_preprocess();
 
     return *this;
 }
 
-byte_pattern & byte_pattern::set_module()
+byte_pattern &byte_pattern::set_pattern(const std::uint8_t *pattern_binary, size_t size)
+{
+    this->_pattern.clear();
+    this->_mask.clear();
+    this->_pattern.assign(pattern_binary, pattern_binary + size);
+    this->_mask.resize(size, 0xFF);
+    this->bm_preprocess();
+
+    return *this;
+}
+
+byte_pattern & byte_pattern::reset_module()
 {
     static HMODULE default_module = GetModuleHandleA(NULL);
 
@@ -74,6 +81,7 @@ byte_pattern &byte_pattern::set_range(memory_pointer beg, memory_pointer end)
     this->_range.second = end;
 
     return *this;
+    return 
 }
 
 byte_pattern &byte_pattern::search()
@@ -88,6 +96,13 @@ byte_pattern &byte_pattern::search()
 byte_pattern & byte_pattern::find_pattern(const char *pattern_literal)
 {
     this->set_pattern(pattern_literal).search();
+
+    return *this;
+}
+
+byte_pattern & byte_pattern::find_pattern(const std::uint8_t * pattern_binary, size_t size)
+{
+    this->set_pattern(pattern_binary, size).search();
 
     return *this;
 }
@@ -189,7 +204,6 @@ void byte_pattern::transform_pattern(const char *literal)
 {
     vector<string> sub_patterns;
 
-    this->clear();
     this->_literal = literal;
 
     if (this->_literal.empty())
@@ -199,25 +213,18 @@ void byte_pattern::transform_pattern(const char *literal)
 
     sub_patterns = split_pattern(literal);
 
-    try
+    for (auto sub : sub_patterns)
     {
-        for (auto sub : sub_patterns)
-        {
-            auto pat = parse_sub_pattern(sub);
+        auto pat = parse_sub_pattern(sub);
 
-            this->_pattern.push_back(pat.first);
-            this->_mask.push_back(pat.second);
-        }
-    }
-    catch (const invalid_argument&)
-    {
-        this->clear();
+        this->_pattern.push_back(pat.first);
+        this->_mask.push_back(pat.second);
     }
 }
 
 void byte_pattern::get_module_range(memory_pointer module)
 {
-    //Range includes all sections
+    //Range of whole image.
     PIMAGE_DOS_HEADER dosHeader = module.pointer<IMAGE_DOS_HEADER>();
     PIMAGE_NT_HEADERS ntHeader = module.pointer<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
@@ -231,6 +238,14 @@ void byte_pattern::clear()
     this->_pattern.clear();
     this->_mask.clear();
     this->_results.clear();
+}
+
+void byte_pattern::for_each_result(std::function<void(memory_pointer)> Pr) const
+{
+    for (memory_pointer p : this->_results)
+    {
+        Pr(p);
+    }
 }
 
 size_t byte_pattern::count() const
@@ -272,6 +287,9 @@ void byte_pattern::bm_preprocess()
 
 void byte_pattern::bm_search()
 {
+    std::chrono::steady_clock::time_point start, end;
+    duration<double> dur;
+
     const uint8_t *pbytes = this->_pattern.data();
     const uint8_t *pmask = this->_mask.data();
     size_t pattern_len = this->_pattern.size();
@@ -287,6 +305,8 @@ void byte_pattern::bm_search()
     uint8_t *range_end = reinterpret_cast<uint8_t *>(this->_range.second - pattern_len);
 
     ptrdiff_t index;
+
+    start = std::chrono::steady_clock::now();
 
     __try
     {
@@ -315,6 +335,10 @@ void byte_pattern::bm_search()
     {
 
     }
+
+    end = steady_clock::now();
+    dur = duration_cast<duration<double>>(end - start);
+    _spent = dur.count();
 }
 
 void byte_pattern::debug_output() const
@@ -322,9 +346,9 @@ void byte_pattern::debug_output() const
     if (!log_stream().is_open())
         return;
 
-    log_stream() << hex << uppercase;
+    log_stream() << hex << uppercase << fixed;
 
-    log_stream() << "Result(s) of pattern: " << _literal << '\n';
+    log_stream() << _spent << "s. Result(s) of pattern: " << _literal << '\n';
 
     if (count() > 0)
     {
@@ -339,5 +363,5 @@ void byte_pattern::debug_output() const
         log_stream() << "None\n";
     }
 
-    log_stream() << "--------------------------------------------------------------------------------------" << '\n' << endl;
+    log_stream() << endl;
 }
