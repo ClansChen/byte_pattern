@@ -86,7 +86,7 @@ public:
     byte_pattern();
 
     byte_pattern &set_pattern(const char *pattern_literal);
-    byte_pattern &set_pattern(const std::uint8_t *pattern_binary, size_t size);
+    byte_pattern &set_pattern(const void *pattern_binary, size_t size);
 
     byte_pattern &reset_module();
     byte_pattern &set_module(memory_pointer module);
@@ -95,7 +95,7 @@ public:
     byte_pattern &search();
 
     byte_pattern &find_pattern(const char *pattern_literal);
-    byte_pattern &find_pattern(const std::uint8_t *pattern_binary, size_t size);
+    byte_pattern &find_pattern(const void *pattern_binary, size_t size);
 
     memory_pointer get(std::size_t index) const;
     memory_pointer get_first() const;
@@ -105,5 +105,5 @@ public:
     bool empty() const;
     void clear();
 
-    void for_each_result(std::function<void(memory_pointer)> Pr) const;
+    void for_each_result(std::function<void(memory_pointer)> fn) const;
 };

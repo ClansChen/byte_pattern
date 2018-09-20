@@ -50,11 +50,11 @@ byte_pattern &byte_pattern::set_pattern(const char *pattern_literal)
     return *this;
 }
 
-byte_pattern &byte_pattern::set_pattern(const std::uint8_t *pattern_binary, size_t size)
+byte_pattern &byte_pattern::set_pattern(const void *pattern_binary, size_t size)
 {
     this->_pattern.clear();
     this->_mask.clear();
-    this->_pattern.assign(pattern_binary, pattern_binary + size);
+    this->_pattern.assign(reinterpret_cast<const uint8_t *>(pattern_binary), reinterpret_cast<const uint8_t *>(pattern_binary) + size);
     this->_mask.resize(size, 0xFF);
     this->bm_preprocess();
 
@@ -99,7 +99,7 @@ byte_pattern & byte_pattern::find_pattern(const char *pattern_literal)
     return *this;
 }
 
-byte_pattern & byte_pattern::find_pattern(const std::uint8_t * pattern_binary, size_t size)
+byte_pattern & byte_pattern::find_pattern(const void *pattern_binary, size_t size)
 {
     this->set_pattern(pattern_binary, size).search();
 
@@ -239,11 +239,11 @@ void byte_pattern::clear()
     this->_results.clear();
 }
 
-void byte_pattern::for_each_result(std::function<void(memory_pointer)> Pr) const
+void byte_pattern::for_each_result(std::function<void(memory_pointer)> fn) const
 {
     for (memory_pointer p : this->_results)
     {
-        Pr(p);
+        fn(p);
     }
 }
 
@@ -286,7 +286,7 @@ void byte_pattern::bm_preprocess()
 
 void byte_pattern::bm_search()
 {
-    std::chrono::steady_clock::time_point start, end;
+    steady_clock::time_point start, end;
     duration<double> dur;
 
     const uint8_t *pbytes = this->_pattern.data();
@@ -305,7 +305,7 @@ void byte_pattern::bm_search()
 
     ptrdiff_t index;
 
-    start = std::chrono::steady_clock::now();
+    start = steady_clock::now();
 
     __try
     {
