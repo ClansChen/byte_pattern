@@ -224,11 +224,11 @@ void byte_pattern::transform_pattern(const char *literal)
 void byte_pattern::get_module_range(memory_pointer module)
 {
     //Range of whole image.
-    PIMAGE_DOS_HEADER dosHeader = module.pointer<IMAGE_DOS_HEADER>();
-    PIMAGE_NT_HEADERS ntHeader = module.pointer<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
+    PIMAGE_DOS_HEADER dosHeader = module.p<IMAGE_DOS_HEADER>();
+    PIMAGE_NT_HEADERS ntHeader = module.p<IMAGE_NT_HEADERS>(dosHeader->e_lfanew);
 
     _range.first = module;
-    _range.second = module.address(ntHeader->OptionalHeader.SizeOfImage);
+    _range.second = module.i(ntHeader->OptionalHeader.SizeOfImage);
 }
 
 void byte_pattern::clear()
@@ -237,14 +237,6 @@ void byte_pattern::clear()
     this->_pattern.clear();
     this->_mask.clear();
     this->_results.clear();
-}
-
-void byte_pattern::for_each_result(std::function<void(memory_pointer)> fn) const
-{
-    for (memory_pointer p : this->_results)
-    {
-        fn(p);
-    }
 }
 
 size_t byte_pattern::count() const
@@ -287,7 +279,7 @@ void byte_pattern::bm_preprocess()
 void byte_pattern::bm_search()
 {
     steady_clock::time_point start, end;
-    duration<double> dur;
+    duration<double, milli> dur;
 
     const uint8_t *pbytes = this->_pattern.data();
     const uint8_t *pmask = this->_mask.data();
@@ -336,7 +328,7 @@ void byte_pattern::bm_search()
     }
 
     end = steady_clock::now();
-    dur = duration_cast<duration<double>>(end - start);
+    dur = end - start;
     _spent = dur.count();
 }
 
@@ -347,19 +339,19 @@ void byte_pattern::debug_output() const
 
     log_stream() << hex << uppercase << fixed;
 
-    log_stream() << _spent << "s. Result(s) of pattern: " << _literal << '\n';
+    log_stream() << _spent << u8"ms. Result(s) of pattern: " << _literal << endl;
 
     if (count() > 0)
     {
         for_each_result(
-            [this](memory_pointer pointer)
+            [](memory_pointer pointer)
         {
-            log_stream() << "0x" << pointer.address() << '\n';
+            log_stream() << "0x" << pointer.i() << endl;
         });
     }
     else
     {
-        log_stream() << "None\n";
+        log_stream() << "None" << endl;
     }
 
     log_stream() << endl;

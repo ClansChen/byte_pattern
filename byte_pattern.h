@@ -10,54 +10,54 @@
 #include <fstream>
 #include <utility>
 #include <filesystem>
-#include <functional>
 #include <chrono>
 
 class memory_pointer
 {
-    union
-    {
-        void *Pointer;
-        std::uintptr_t Address;
-    };
-
 public:
-    memory_pointer()
-        :Pointer{}
-    {
+    memory_pointer() :_address(0) {}
+    memory_pointer(void *pointer) :_address(reinterpret_cast<std::intptr_t>(pointer)) {}
+    explicit memory_pointer(std::intptr_t address) :_address(address) {}
 
+    template <typename T>
+    T *p(std::intptr_t offset = 0) const
+    {
+        return reinterpret_cast<T *>(i(offset));
     }
 
-    memory_pointer(void *p)
-        : Pointer(p)
+    std::intptr_t i(std::intptr_t offset = 0) const
     {
+        return (_address + offset);
     }
 
-    memory_pointer(std::uintptr_t i)
-        : Address(i)
+    memory_pointer &operator=(void *pointer)
     {
+        _address = reinterpret_cast<std::intptr_t>(pointer);
     }
 
-    std::uintptr_t address(std::ptrdiff_t offset = 0) const
+    memory_pointer &operator=(std::intptr_t address)
     {
-        return (this->Address + offset);
+        _address = address;
     }
 
-    template<typename T = void>
-    T *pointer(std::ptrdiff_t offset = 0) const
+    template <typename T>
+    operator T* () const
     {
-        return reinterpret_cast<T *>(this->address(offset));
+        return p<T>();
     }
 
-    operator std::uintptr_t() const
+    operator std::intptr_t() const
     {
-        return this->address();
+        return _address;
     }
+
+private:
+    std::intptr_t _address;
 };
 
 class byte_pattern
 {
-    std::pair<std::uintptr_t, std::uintptr_t> _range;
+    std::pair<std::intptr_t, std::intptr_t> _range;
     std::vector<std::uint8_t> _pattern;
     std::vector<std::uint8_t> _mask;
     std::vector<memory_pointer> _results;
@@ -69,7 +69,7 @@ class byte_pattern
     static std::ofstream &log_stream();
 
     static std::vector<std::string> split_pattern(const char *literal);
-    std::pair<uint8_t, uint8_t> parse_sub_pattern(const std::string &sub);
+    static std::pair<uint8_t, uint8_t> parse_sub_pattern(const std::string &sub);
     void transform_pattern(const char *literal);
 
     void get_module_range(memory_pointer module);
@@ -80,13 +80,13 @@ class byte_pattern
     void debug_output() const;
 
 public:
-    static void start_log(const wchar_t *module_name);
+    static void start_log(const wchar_t *log_name);
     static void shutdown_log();
 
     byte_pattern();
 
     byte_pattern &set_pattern(const char *pattern_literal);
-    byte_pattern &set_pattern(const void *pattern_binary, size_t size);
+    byte_pattern &set_pattern(const void *pattern_binary, std::size_t size);
 
     byte_pattern &reset_module();
     byte_pattern &set_module(memory_pointer module);
@@ -95,7 +95,7 @@ public:
     byte_pattern &search();
 
     byte_pattern &find_pattern(const char *pattern_literal);
-    byte_pattern &find_pattern(const void *pattern_binary, size_t size);
+    byte_pattern &find_pattern(const void *pattern_binary, std::size_t size);
 
     memory_pointer get(std::size_t index) const;
     memory_pointer get_first() const;
@@ -105,5 +105,12 @@ public:
     bool empty() const;
     void clear();
 
-    void for_each_result(std::function<void(memory_pointer)> fn) const;
+    template <typename Fn>
+    void for_each_result(Fn fn) const
+    {
+        for (memory_pointer p : this->_results)
+        {
+            fn(p);
+        }
+    }
 };
