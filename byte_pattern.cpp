@@ -5,6 +5,7 @@
 
 using namespace std;
 using namespace std::chrono;
+using namespace std::filesystem;
 
 #pragma warning(disable:4996)
 
@@ -29,7 +30,7 @@ void byte_pattern::start_log(const wchar_t *log_name)
 
     GetModuleFileNameW(NULL, exe_path, 512);
 
-    log_stream().open(experimental::filesystem::v1::path{ exe_path }.parent_path() / filename, ios::trunc);
+    log_stream().open(path{ exe_path }.parent_path() / filename, ios::trunc);
 }
 
 void byte_pattern::shutdown_log()
