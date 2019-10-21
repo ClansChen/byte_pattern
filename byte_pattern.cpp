@@ -19,7 +19,7 @@ memory_pointer byte_pattern::get_first() const
     return this->get(0);
 }
 
-void byte_pattern::start_log(const wchar_t *log_name)
+void byte_pattern::start_log(const wchar_t* log_name)
 {
     shutdown_log();
 
@@ -43,7 +43,7 @@ byte_pattern::byte_pattern()
     reset_module();
 }
 
-byte_pattern &byte_pattern::set_pattern(const char *pattern_literal)
+byte_pattern& byte_pattern::set_pattern(const char* pattern_literal)
 {
     this->_pattern.clear();
     this->_mask.clear();
@@ -54,11 +54,11 @@ byte_pattern &byte_pattern::set_pattern(const char *pattern_literal)
     return *this;
 }
 
-byte_pattern &byte_pattern::set_pattern(const void *pattern_binary, size_t size)
+byte_pattern& byte_pattern::set_pattern(const void* pattern_binary, size_t size)
 {
     this->_pattern.clear();
     this->_mask.clear();
-    this->_pattern.assign(reinterpret_cast<const uint8_t *>(pattern_binary), reinterpret_cast<const uint8_t *>(pattern_binary) + size);
+    this->_pattern.assign(reinterpret_cast<const uint8_t*>(pattern_binary), reinterpret_cast<const uint8_t*>(pattern_binary) + size);
     this->_literal = make_bytes_literal(pattern_binary, size);
     this->_mask.resize(size, 0xFF);
     this->bm_preprocess();
@@ -66,21 +66,21 @@ byte_pattern &byte_pattern::set_pattern(const void *pattern_binary, size_t size)
     return *this;
 }
 
-byte_pattern & byte_pattern::reset_module()
+byte_pattern& byte_pattern::reset_module()
 {
     static HMODULE default_module = GetModuleHandleA(nullptr);
 
     return set_module(default_module);
 }
 
-byte_pattern &byte_pattern::set_module(memory_pointer module)
+byte_pattern& byte_pattern::set_module(memory_pointer module)
 {
     this->get_module_range(module);
 
     return *this;
 }
 
-byte_pattern &byte_pattern::set_range(memory_pointer beg, memory_pointer end)
+byte_pattern& byte_pattern::set_range(memory_pointer beg, memory_pointer end)
 {
     this->_range.first = beg;
     this->_range.second = end;
@@ -88,7 +88,7 @@ byte_pattern &byte_pattern::set_range(memory_pointer beg, memory_pointer end)
     return *this;
 }
 
-byte_pattern &byte_pattern::search()
+byte_pattern& byte_pattern::search()
 {
     this->bm_search();
 
@@ -97,28 +97,28 @@ byte_pattern &byte_pattern::search()
     return *this;
 }
 
-byte_pattern & byte_pattern::find_pattern(const char *pattern_literal)
+byte_pattern& byte_pattern::find_pattern(const char* pattern_literal)
 {
     this->set_pattern(pattern_literal).search();
 
     return *this;
 }
 
-byte_pattern & byte_pattern::find_pattern(const void *pattern_binary, size_t size)
+byte_pattern& byte_pattern::find_pattern(const void* pattern_binary, size_t size)
 {
     this->set_pattern(pattern_binary, size).search();
 
     return *this;
 }
 
-std::ofstream & byte_pattern::log_stream()
+std::ofstream& byte_pattern::log_stream()
 {
     static ofstream instance;
 
     return instance;
 }
 
-std::vector<std::string> byte_pattern::split_pattern(const char *literal)
+std::vector<std::string> byte_pattern::split_pattern(const char* literal)
 {
     std::vector<std::string> result;
     std::string sub_pattern;
@@ -150,7 +150,7 @@ std::vector<std::string> byte_pattern::split_pattern(const char *literal)
     return result;
 }
 
-pair<uint8_t, uint8_t> byte_pattern::parse_sub_pattern(const std::string &sub)
+pair<uint8_t, uint8_t> byte_pattern::parse_sub_pattern(const std::string& sub)
 {
     auto digit_to_value = [](char character) {
         if ('0' <= character && character <= '9') return (character - '0');
@@ -204,7 +204,7 @@ pair<uint8_t, uint8_t> byte_pattern::parse_sub_pattern(const std::string &sub)
     return result;
 }
 
-void byte_pattern::transform_pattern(const char *literal)
+void byte_pattern::transform_pattern(const char* literal)
 {
     vector<string> sub_patterns;
 
@@ -263,8 +263,8 @@ void byte_pattern::bm_preprocess()
 {
     ptrdiff_t index;
 
-    const uint8_t *pbytes = this->_pattern.data();
-    const uint8_t *pmask = this->_mask.data();
+    const uint8_t* pbytes = this->_pattern.data();
+    const uint8_t* pmask = this->_mask.data();
     size_t pattern_len = this->_pattern.size();
 
     for (uint32_t bc = 0; bc < 256; ++bc)
@@ -286,8 +286,8 @@ void byte_pattern::bm_search()
     steady_clock::time_point start, end;
     duration<double, milli> dur;
 
-    const uint8_t *pbytes = this->_pattern.data();
-    const uint8_t *pmask = this->_mask.data();
+    const uint8_t* pbytes = this->_pattern.data();
+    const uint8_t* pmask = this->_mask.data();
     size_t pattern_len = this->_pattern.size();
 
     this->_results.clear();
@@ -297,8 +297,8 @@ void byte_pattern::bm_search()
         return;
     }
 
-    uint8_t *range_begin = reinterpret_cast<uint8_t *>(this->_range.first);
-    uint8_t *range_end = reinterpret_cast<uint8_t *>(this->_range.second - pattern_len);
+    uint8_t* range_begin = reinterpret_cast<uint8_t*>(this->_range.first);
+    uint8_t* range_end = reinterpret_cast<uint8_t*>(this->_range.second - pattern_len);
 
     ptrdiff_t index;
 
@@ -368,9 +368,9 @@ void byte_pattern::debug_output() const
     {
         for_each_result(
             [this](memory_pointer pointer)
-        {
-            log_stream() << "0x" << (pointer.i() - this->_range.first + 0x400400) << " | " << make_bytes_literal(pointer, _pattern.size()) << '\n';
-        });
+            {
+                log_stream() << "0x" << (pointer.i() - this->_range.first + 0x400400) << " | " << make_bytes_literal(pointer, _pattern.size()) << '\n';
+            });
     }
     else
     {

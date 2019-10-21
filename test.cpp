@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iterator>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     std::vector<char> buffer;
     byte_pattern pat;
