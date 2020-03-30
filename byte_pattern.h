@@ -3,16 +3,12 @@
 
 #pragma once
 #include <Windows.h>
-#include <cstdint>
 #include <cstddef>
-#include <cstdio>
-#include <cwchar>
+#include <cstdint>
 #include <vector>
-#include <string>
-#include <fstream>
-#include <utility>
-#include <filesystem>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 
 class memory_pointer
 {
@@ -103,6 +99,7 @@ public:
     byte_pattern& find_pattern(const void* pattern_binary, std::size_t size);
 
     memory_pointer get(std::size_t index) const;
+    std::vector<memory_pointer> get() const;
     memory_pointer get_first() const;
 
     std::size_t count() const;
